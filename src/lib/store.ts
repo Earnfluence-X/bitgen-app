@@ -99,11 +99,13 @@ export const useStore = create<BitGenStore>((set, get) => {
         unsubscribers = [];
 
         if (firebaseUser) {
+          console.log('🔐 User logged in:', firebaseUser.uid);
           set({ firebaseUser, authLoading: false });
 
           const userUnsub = onSnapshot(doc(db, 'users', firebaseUser.uid), (userDoc) => {
             if (userDoc.exists()) {
               const userData = userDoc.data() as Omit<UserProfile, 'id'>;
+              console.log('👤 User data loaded:', userData.username);
               set({
                 user: { id: firebaseUser.uid, ...userData },
                 balance: userData.balance || 0
@@ -117,7 +119,10 @@ export const useStore = create<BitGenStore>((set, get) => {
           });
           unsubscribers.push(userUnsub);
 
+          // ✅ UPDATED: Added debug logs for transactions
           const txUnsub = listenToUserTransactions(firebaseUser.uid, (transactions) => {
+            console.log('📊 Transactions received:', transactions.length);
+            console.log('📊 First transaction:', transactions[0] || 'None');
             set({ transactions });
           });
           unsubscribers.push(txUnsub);
@@ -137,6 +142,7 @@ export const useStore = create<BitGenStore>((set, get) => {
           unsubscribers.push(activeGigsUnsub);
 
         } else {
+          console.log('🔐 User logged out');
           set({
             firebaseUser: null,
             user: null,
@@ -314,12 +320,7 @@ export const useStore = create<BitGenStore>((set, get) => {
       if (!firebaseUser || !user) throw new Error('Not authenticated');
       if (isDemo) throw new Error('Demo mode - connect Firebase');
       
-      // ✅ Email verification check REMOVED
-      // const verified = await isEmailVerified(firebaseUser.uid);
-      // if (!verified) {
-      //   get().showToast('Please verify your email before sending coins. Check your inbox.', 'error');
-      //   return false;
-      // }
+      console.log('💸 Sending coins:', { recipientUserTag, amount, note });
       
       const now = Date.now();
       if (now - lastSendTime < SEND_COOLDOWN_MS) {
@@ -407,6 +408,7 @@ export const useStore = create<BitGenStore>((set, get) => {
         createdAt: serverTimestamp(),
       });
       
+      console.log('✅ Transaction complete!');
       get().showToast(`Sent ${amount} BG to ${recipient.userTag} (${TRANSACTION_FEE} BG fee applied)`, 'success');
       return true;
     },
@@ -460,12 +462,6 @@ export const useStore = create<BitGenStore>((set, get) => {
       const { firebaseUser, user } = get();
       if (!firebaseUser || !user) throw new Error('Not authenticated');
       if (isDemo) throw new Error('Demo mode - connect Firebase');
-
-      // ✅ Email verification check REMOVED
-      // const verified = await isEmailVerified(firebaseUser.uid);
-      // if (!verified) {
-      //   throw new Error('Please verify your email before posting gigs');
-      // }
 
       const totalCost = GIG_LISTING_FEE + (isPremium ? PREMIUM_GIG_PRICE : 0);
       
