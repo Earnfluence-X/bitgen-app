@@ -308,16 +308,18 @@ export const useStore = create<BitGenStore>((set, get) => {
       return user?.transactionPin === pin;
     },
 
+    // ✅ EMAIL VERIFICATION REMOVED FROM sendToUsername
     sendToUsername: async (recipientUserTag: string, amount: number, note: string, senderPin: string) => {
       const { firebaseUser, user, lastSendTime } = get();
       if (!firebaseUser || !user) throw new Error('Not authenticated');
       if (isDemo) throw new Error('Demo mode - connect Firebase');
       
-      const verified = await isEmailVerified(firebaseUser.uid);
-      if (!verified) {
-        get().showToast('Please verify your email before sending coins. Check your inbox.', 'error');
-        return false;
-      }
+      // ✅ Email verification check REMOVED
+      // const verified = await isEmailVerified(firebaseUser.uid);
+      // if (!verified) {
+      //   get().showToast('Please verify your email before sending coins. Check your inbox.', 'error');
+      //   return false;
+      // }
       
       const now = Date.now();
       if (now - lastSendTime < SEND_COOLDOWN_MS) {
@@ -453,15 +455,17 @@ export const useStore = create<BitGenStore>((set, get) => {
       return true;
     },
 
+    // ✅ EMAIL VERIFICATION REMOVED FROM postGig
     postGig: async (title, description, category, type, reward, isPremium = false) => {
       const { firebaseUser, user } = get();
       if (!firebaseUser || !user) throw new Error('Not authenticated');
       if (isDemo) throw new Error('Demo mode - connect Firebase');
 
-      const verified = await isEmailVerified(firebaseUser.uid);
-      if (!verified) {
-        throw new Error('Please verify your email before posting gigs');
-      }
+      // ✅ Email verification check REMOVED
+      // const verified = await isEmailVerified(firebaseUser.uid);
+      // if (!verified) {
+      //   throw new Error('Please verify your email before posting gigs');
+      // }
 
       const totalCost = GIG_LISTING_FEE + (isPremium ? PREMIUM_GIG_PRICE : 0);
       
