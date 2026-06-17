@@ -46,7 +46,6 @@ class CacheManager {
 
       const item: CacheItem<T> = JSON.parse(raw);
       
-      // Check if expired
       if (Date.now() > item.expiresAt) {
         localStorage.removeItem(this.getKey(key));
         return null;
@@ -72,7 +71,6 @@ class CacheManager {
     });
   }
 
-  // Check if cache is fresh
   isFresh(key: string): boolean {
     try {
       const raw = localStorage.getItem(this.getKey(key));
@@ -88,11 +86,11 @@ class CacheManager {
 export const cache = new CacheManager('bitgen_');
 
 // ============================================
-// SPECIFIC CACHE FUNCTIONS
+// SPECIFIC CACHE FUNCTIONS - ALL EXPORTED
 // ============================================
 
 export function cacheUserData(userId: string, data: any): void {
-  cache.set(`user_${userId}`, data, { ttl: 5 * 60 * 1000 }); // 5 minutes
+  cache.set(`user_${userId}`, data, { ttl: 5 * 60 * 1000 });
 }
 
 export function getCachedUserData(userId: string): any | null {
@@ -100,7 +98,7 @@ export function getCachedUserData(userId: string): any | null {
 }
 
 export function cacheTransactions(userId: string, data: any[]): void {
-  cache.set(`transactions_${userId}`, data, { ttl: 2 * 60 * 1000 }); // 2 minutes
+  cache.set(`transactions_${userId}`, data, { ttl: 2 * 60 * 1000 });
 }
 
 export function getCachedTransactions(userId: string): any[] | null {
@@ -108,7 +106,7 @@ export function getCachedTransactions(userId: string): any[] | null {
 }
 
 export function cacheGigs(userId: string, data: any[]): void {
-  cache.set(`gigs_${userId}`, data, { ttl: 3 * 60 * 1000 }); // 3 minutes
+  cache.set(`gigs_${userId}`, data, { ttl: 3 * 60 * 1000 });
 }
 
 export function getCachedGigs(userId: string): any[] | null {
@@ -116,16 +114,202 @@ export function getCachedGigs(userId: string): any[] | null {
 }
 
 export function cacheLeaderboard(data: any[]): void {
-  cache.set('leaderboard', data, { ttl: 10 * 60 * 1000 }); // 10 minutes
+  cache.set('leaderboard', data, { ttl: 10 * 60 * 1000 });
 }
 
 export function getCachedLeaderboard(): any[] | null {
   return cache.get('leaderboard');
 }
 
-// Clear user data on logout
+export function cacheSearch(query: string, data: any[]): void {
+  cache.set(`search_${query}`, data, { ttl: 2 * 60 * 1000 });
+}
+
+export function getCachedSearch(query: string): any[] | null {
+  return cache.get(`search_${query}`);
+}
+
+export function clearSearchCache(): void {
+  const storage = getStorage();
+  storage.searchCache = {};
+  setStorage({ searchCache: storage.searchCache });
+}
+
 export function clearUserCache(userId: string): void {
   cache.remove(`user_${userId}`);
   cache.remove(`transactions_${userId}`);
   cache.remove(`gigs_${userId}`);
+}
+
+// ============================================
+// STORAGE FUNCTIONS - NEEDED FOR CACHE
+// ============================================
+
+interface StorageData {
+  searchCache: Record<string, { results: any[]; timestamp: number }>;
+  preferences: {
+    theme: 'dark' | 'light';
+    language: string;
+  };
+  appState: {
+    activeTab: string;
+    lastVisited: string;
+  };
+  pendingTransactions: any[];
+  cache: {
+    balance: number;
+    transactions: any[];
+    lastSync: number;
+  };
+  onboarding: {
+    hasSeenOnboarding: boolean;
+    hasAgreedToTerms: boolean;
+  };
+}
+
+const defaultStorage: StorageData = {
+  searchCache: {},
+  preferences: {
+    theme: 'dark',
+    language: 'en',
+  },
+  appState: {
+    activeTab: 'home',
+    lastVisited: new Date().toISOString(),
+  },
+  pendingTransactions: [],
+  cache: {
+    balance: 0,
+    transactions: [],
+    lastSync: 0,
+  },
+  onboarding: {
+    hasSeenOnboarding: false,
+    hasAgreedToTerms: false,
+  },
+};
+
+export function getStorage(): StorageData {
+  try {
+    const data = localStorage.getItem('bitgen_data');
+    if (data) {
+      const parsed = JSON.parse(data);
+      return { ...defaultStorage, ...parsed };
+    }
+  } catch (error) {
+    console.error('Error reading storage:', error);
+  }
+  return defaultStorage;
+}
+
+export function setStorage(data: Partial<StorageData>): void {
+  try {
+    const current = getStorage();
+    const updated = { ...current, ...data };
+    localStorage.setItem('bitgen_data', JSON.stringify(updated));
+  } catch (error) {
+    console.error('Error saving storage:', error);
+  }
+}
+
+export function setCachedSearch(query: string, results: any[]): void {
+  const storage = getStorage();
+  storage.searchCache[query] = {
+    results,
+    timestamp: Date.now(),
+  };
+  setStorage({ searchCache: storage.searchCache });
+}
+
+export function updateCache(balance: number, transactions: any[]): void {
+  setStorage({
+    cache: {
+      balance,
+      transactions,
+      lastSync: Date.now(),
+    },
+  });
+}
+
+export function getCachedBalance(): number | null {
+  const storage = getStorage();
+  if (Date.now() - storage.cache.lastSync < 60000) {
+    return storage.cache.balance;
+  }
+  return null;
+}
+
+export function getCachedTransactions(): any[] | null {
+  const storage = getStorage();
+  if (Date.now() - storage.cache.lastSync < 60000) {
+    return storage.cache.transactions;
+  }
+  return null;
+}
+
+export function addPendingTransaction(transaction: any): void {
+  const storage = getStorage();
+  storage.pendingTransactions.push({
+    id: Date.now().toString(),
+    ...transaction,
+    timestamp: Date.now(),
+  });
+  setStorage({ pendingTransactions: storage.pendingTransactions });
+}
+
+export function getPendingTransactions(): any[] {
+  return getStorage().pendingTransactions;
+}
+
+export function removePendingTransaction(id: string): void {
+  const storage = getStorage();
+  storage.pendingTransactions = storage.pendingTransactions.filter(t => t.id !== id);
+  setStorage({ pendingTransactions: storage.pendingTransactions });
+}
+
+export function clearPendingTransactions(): void {
+  const storage = getStorage();
+  storage.pendingTransactions = [];
+  setStorage({ pendingTransactions: storage.pendingTransactions });
+}
+
+export function setOnboardingComplete(): void {
+  const storage = getStorage();
+  storage.onboarding.hasSeenOnboarding = true;
+  setStorage({ onboarding: storage.onboarding });
+}
+
+export function setTermsAgreed(): void {
+  const storage = getStorage();
+  storage.onboarding.hasAgreedToTerms = true;
+  setStorage({ onboarding: storage.onboarding });
+}
+
+export function getOnboardingStatus() {
+  return getStorage().onboarding;
+}
+
+export function setTheme(theme: 'dark' | 'light'): void {
+  const storage = getStorage();
+  storage.preferences.theme = theme;
+  setStorage({ preferences: storage.preferences });
+}
+
+export function getTheme(): 'dark' | 'light' {
+  return getStorage().preferences.theme;
+}
+
+export function setActiveTab(tab: string): void {
+  const storage = getStorage();
+  storage.appState.activeTab = tab;
+  storage.appState.lastVisited = new Date().toISOString();
+  setStorage({ appState: storage.appState });
+}
+
+export function getActiveTab(): string {
+  return getStorage().appState.activeTab;
+}
+
+export function clearAllStorage(): void {
+  localStorage.removeItem('bitgen_data');
 }
