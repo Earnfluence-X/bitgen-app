@@ -8,7 +8,7 @@ export default function ReferralCard() {
 
   const handleCopy = () => {
     navigator.clipboard.writeText(referralCode).then(() => {
-      showToast('Referral code copied!', 'success');
+      showToast('Referral code copied! Share with friends!', 'success');
     }).catch(() => {
       showToast('Code: ' + referralCode, 'info');
     });
@@ -17,15 +17,15 @@ export default function ReferralCard() {
   return (
     <div style={{
       background: 'var(--bg-primary)',
-      border: '1px solid #1a1f2c',
+      border: '1px solid var(--gold-border)',
       borderRadius: 'var(--radius-lg)',
       padding: '16px',
     }}>
       <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '4px' }}>
-        Invite Friends
+        🎁 Invite Friends
       </div>
       <div style={{ fontSize: '12px', color: 'var(--text-meta)', marginBottom: '12px' }}>
-        Share your code. Both of you get 25 BG when they sign up.
+        Share your code. Both of you get <strong style={{ color: 'var(--gold)' }}>25 BG</strong> when they sign up!
       </div>
       <div style={{
         display: 'flex',
@@ -62,6 +62,17 @@ export default function ReferralCard() {
         >
           Copy
         </button>
+      </div>
+      <div style={{
+        marginTop: '12px',
+        padding: '8px 12px',
+        background: 'var(--bg-surface)',
+        borderRadius: 'var(--radius-sm)',
+        fontSize: '11px',
+        color: 'var(--text-meta)',
+        textAlign: 'center',
+      }}>
+        💡 Share your code on WhatsApp, Instagram, or with friends!
       </div>
     </div>
   );

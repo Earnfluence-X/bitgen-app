@@ -91,8 +91,8 @@ export function validateReferralCode(code: string): boolean {
 // Apply referral bonus when new user signs up with a code
 export async function applyReferralBonus(newUserId: string, referralCode: string): Promise<boolean> {
   try {
-    // Find the referrer by decoding the referral code
-    // This is simplified - in production you'd store referral codes in a separate collection
+    console.log('🔍 Applying referral bonus for code:', referralCode);
+    
     const usersRef = collection(db, 'users');
     const snapshot = await getDocs(usersRef);
     
@@ -110,24 +110,24 @@ export async function applyReferralBonus(newUserId: string, referralCode: string
     }
     
     if (!referrerId || referrerId === newUserId) {
+      console.log('❌ Invalid referral code:', referralCode);
       return false;
     }
     
+    console.log('✅ Referrer found:', referrerData.username);
+    
     const BONUS_AMOUNT = 25;
     
-    // Give bonus to referrer
     await updateDoc(doc(db, 'users', referrerId), {
       balance: increment(BONUS_AMOUNT),
       totalEarned: increment(BONUS_AMOUNT),
     });
     
-    // Give bonus to new user
     await updateDoc(doc(db, 'users', newUserId), {
       balance: increment(BONUS_AMOUNT),
       totalEarned: increment(BONUS_AMOUNT),
     });
     
-    // Record referral transaction for referrer
     await addTransaction({
       type: 'referral_bonus',
       senderId: 'system',
@@ -140,6 +140,19 @@ export async function applyReferralBonus(newUserId: string, referralCode: string
       note: `Referral bonus for inviting new user`,
     });
     
+    await addTransaction({
+      type: 'referral_bonus',
+      senderId: 'system',
+      senderUsername: 'BitGen',
+      senderUserTag: '@bitgen',
+      recipientId: newUserId,
+      recipientUsername: 'New User',
+      recipientUserTag: '@newuser',
+      amount: BONUS_AMOUNT,
+      note: `Referral bonus for signing up with code`,
+    });
+    
+    console.log('✅ Referral bonus applied successfully!');
     return true;
   } catch (error) {
     console.error('Error applying referral bonus:', error);

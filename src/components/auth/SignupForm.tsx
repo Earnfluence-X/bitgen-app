@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { auth, db, createUserWithEmailAndPassword, sendEmailVerification, doc, setDoc, serverTimestamp } from '../../lib/firebase';
-import { generateUniqueUserTag } from '../../lib/utils';
+import { generateUniqueUserTag, applyReferralBonus } from '../../lib/utils';
 import TermsAgreement from './TermsAgreement';
 
 interface SignupFormProps {
@@ -11,6 +11,7 @@ export default function SignupForm({ onSwitch }: SignupFormProps) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
@@ -43,6 +44,15 @@ export default function SignupForm({ onSwitch }: SignupFormProps) {
       
       const userTag = await generateUniqueUserTag(username);
 
+      // ✅ Apply referral bonus if code provided
+      let referredBy = null;
+      if (referralCode.trim()) {
+        const bonusApplied = await applyReferralBonus(cred.user.uid, referralCode.trim());
+        if (bonusApplied) {
+          referredBy = referralCode.trim();
+        }
+      }
+
       await setDoc(doc(db, 'users', cred.user.uid), {
         email,
         username: username.toLowerCase(),
@@ -61,6 +71,7 @@ export default function SignupForm({ onSwitch }: SignupFormProps) {
         emailVerified: false,
         agreedToTerms: true,
         agreedToTermsAt: new Date().toISOString(),
+        referredBy: referredBy,
         createdAt: serverTimestamp(),
       });
       
@@ -173,7 +184,26 @@ export default function SignupForm({ onSwitch }: SignupFormProps) {
         />
       </div>
 
-      {/* ✅ TERMS AGREEMENT - Pill Shape at Bottom */}
+      {/* ✅ REFERRAL CODE INPUT */}
+      <div>
+        <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-label)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 500 }}>
+          Referral Code (optional)
+        </label>
+        <input
+          type="text"
+          className="input-dark"
+          placeholder="Enter referral code"
+          value={referralCode}
+          onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+          maxLength={10}
+          style={{ textTransform: 'uppercase' }}
+        />
+        <p style={{ fontSize: '11px', color: 'var(--text-meta)', marginTop: '4px' }}>
+          Both you and your friend get 25 BG bonus!
+        </p>
+      </div>
+
+      {/* ✅ TERMS AGREEMENT */}
       <TermsAgreement 
         onAgree={handleTermsAgree} 
         isSubmitting={loading}
@@ -186,7 +216,6 @@ export default function SignupForm({ onSwitch }: SignupFormProps) {
         </div>
       )}
 
-      {/* ✅ CREATE ACCOUNT BUTTON - Always visible, disabled if not agreed */}
       <button
         type="submit"
         className="btn btn-primary"
