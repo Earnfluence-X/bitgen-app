@@ -7,11 +7,11 @@ interface CacheItem<T> {
 }
 
 interface CacheConfig {
-  ttl: number; // Time to live in milliseconds
+  ttl: number;
 }
 
 const DEFAULT_CONFIG: CacheConfig = {
-  ttl: 5 * 60 * 1000, // 5 minutes
+  ttl: 5 * 60 * 1000,
 };
 
 class CacheManager {
@@ -43,14 +43,11 @@ class CacheManager {
     try {
       const raw = localStorage.getItem(this.getKey(key));
       if (!raw) return null;
-
       const item: CacheItem<T> = JSON.parse(raw);
-      
       if (Date.now() > item.expiresAt) {
         localStorage.removeItem(this.getKey(key));
         return null;
       }
-
       return item.data;
     } catch (error) {
       console.warn('Cache get failed:', error);
@@ -86,7 +83,7 @@ class CacheManager {
 export const cache = new CacheManager('bitgen_');
 
 // ============================================
-// SPECIFIC CACHE FUNCTIONS - ALL EXPORTED
+// USER DATA CACHE
 // ============================================
 
 export function cacheUserData(userId: string, data: any): void {
@@ -97,6 +94,16 @@ export function getCachedUserData(userId: string): any | null {
   return cache.get(`user_${userId}`);
 }
 
+export function clearUserCache(userId: string): void {
+  cache.remove(`user_${userId}`);
+  cache.remove(`transactions_${userId}`);
+  cache.remove(`gigs_${userId}`);
+}
+
+// ============================================
+// TRANSACTIONS CACHE
+// ============================================
+
 export function cacheTransactions(userId: string, data: any[]): void {
   cache.set(`transactions_${userId}`, data, { ttl: 2 * 60 * 1000 });
 }
@@ -104,6 +111,10 @@ export function cacheTransactions(userId: string, data: any[]): void {
 export function getCachedTransactions(userId: string): any[] | null {
   return cache.get(`transactions_${userId}`);
 }
+
+// ============================================
+// GIGS CACHE
+// ============================================
 
 export function cacheGigs(userId: string, data: any[]): void {
   cache.set(`gigs_${userId}`, data, { ttl: 3 * 60 * 1000 });
@@ -113,6 +124,10 @@ export function getCachedGigs(userId: string): any[] | null {
   return cache.get(`gigs_${userId}`);
 }
 
+// ============================================
+// LEADERBOARD CACHE
+// ============================================
+
 export function cacheLeaderboard(data: any[]): void {
   cache.set('leaderboard', data, { ttl: 10 * 60 * 1000 });
 }
@@ -120,6 +135,10 @@ export function cacheLeaderboard(data: any[]): void {
 export function getCachedLeaderboard(): any[] | null {
   return cache.get('leaderboard');
 }
+
+// ============================================
+// SEARCH CACHE
+// ============================================
 
 export function cacheSearch(query: string, data: any[]): void {
   cache.set(`search_${query}`, data, { ttl: 2 * 60 * 1000 });
@@ -129,20 +148,18 @@ export function getCachedSearch(query: string): any[] | null {
   return cache.get(`search_${query}`);
 }
 
+export function setCachedSearch(query: string, results: any[]): void {
+  cacheSearch(query, results);
+}
+
 export function clearSearchCache(): void {
   const storage = getStorage();
   storage.searchCache = {};
   setStorage({ searchCache: storage.searchCache });
 }
 
-export function clearUserCache(userId: string): void {
-  cache.remove(`user_${userId}`);
-  cache.remove(`transactions_${userId}`);
-  cache.remove(`gigs_${userId}`);
-}
-
 // ============================================
-// STORAGE FUNCTIONS - NEEDED FOR CACHE
+// STORAGE FUNCTIONS
 // ============================================
 
 interface StorageData {
@@ -212,15 +229,6 @@ export function setStorage(data: Partial<StorageData>): void {
   }
 }
 
-export function setCachedSearch(query: string, results: any[]): void {
-  const storage = getStorage();
-  storage.searchCache[query] = {
-    results,
-    timestamp: Date.now(),
-  };
-  setStorage({ searchCache: storage.searchCache });
-}
-
 export function updateCache(balance: number, transactions: any[]): void {
   setStorage({
     cache: {
@@ -239,13 +247,9 @@ export function getCachedBalance(): number | null {
   return null;
 }
 
-export function getCachedTransactions(): any[] | null {
-  const storage = getStorage();
-  if (Date.now() - storage.cache.lastSync < 60000) {
-    return storage.cache.transactions;
-  }
-  return null;
-}
+// ============================================
+// PENDING TRANSACTIONS
+// ============================================
 
 export function addPendingTransaction(transaction: any): void {
   const storage = getStorage();
@@ -273,6 +277,10 @@ export function clearPendingTransactions(): void {
   setStorage({ pendingTransactions: storage.pendingTransactions });
 }
 
+// ============================================
+// ONBOARDING
+// ============================================
+
 export function setOnboardingComplete(): void {
   const storage = getStorage();
   storage.onboarding.hasSeenOnboarding = true;
@@ -289,6 +297,10 @@ export function getOnboardingStatus() {
   return getStorage().onboarding;
 }
 
+// ============================================
+// PREFERENCES
+// ============================================
+
 export function setTheme(theme: 'dark' | 'light'): void {
   const storage = getStorage();
   storage.preferences.theme = theme;
@@ -298,6 +310,10 @@ export function setTheme(theme: 'dark' | 'light'): void {
 export function getTheme(): 'dark' | 'light' {
   return getStorage().preferences.theme;
 }
+
+// ============================================
+// APP STATE
+// ============================================
 
 export function setActiveTab(tab: string): void {
   const storage = getStorage();
