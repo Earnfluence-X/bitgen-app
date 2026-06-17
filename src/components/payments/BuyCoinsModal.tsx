@@ -1,3 +1,5 @@
+// src/components/payments/BuyCoinsModal.tsx
+
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useStore } from '../../lib/store';
@@ -23,7 +25,7 @@ export default function BuyCoinsModal({ onClose }: BuyCoinsModalProps) {
 
     initializePaystackPayment({
       email: user.email,
-      amount: pkg.price * 100, // Convert to kobo
+      amount: pkg.price * 100,
       metadata: {
         userId: user.id,
         username: user.username,
@@ -43,7 +45,7 @@ export default function BuyCoinsModal({ onClose }: BuyCoinsModalProps) {
           );
           
           if (success) {
-            showToast(`🎉 Purchased ${pkg.coins} BG coins successfully!`, 'success');
+            showToast(`🎉 Purchased ${pkg.coins.toLocaleString()} BG coins successfully!`, 'success');
             onClose();
           } else {
             showToast('Payment confirmed but failed to credit coins. Contact support.', 'error');
@@ -117,6 +119,7 @@ export default function BuyCoinsModal({ onClose }: BuyCoinsModalProps) {
           }}>
             {COIN_PACKAGES.map((pkg) => {
               const pricePerCoin = (pkg.price / pkg.coins).toFixed(2);
+              const savings = pkg.id !== 'p1' ? Math.round((1 - (pkg.price / pkg.coins) / 0.5) * 100) : 0;
               
               return (
                 <button
@@ -128,45 +131,73 @@ export default function BuyCoinsModal({ onClose }: BuyCoinsModalProps) {
                     justifyContent: 'space-between',
                     padding: '16px 18px',
                     background: 'var(--bg-primary)',
-                    border: '1px solid var(--border-default)',
+                    border: savings > 40 ? '2px solid var(--gold-border)' : '1px solid var(--border-default)',
                     borderRadius: 'var(--radius-lg)',
                     cursor: 'pointer',
                     fontFamily: 'inherit',
                     transition: '0.2s',
                     width: '100%',
                     textAlign: 'left',
+                    position: 'relative',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.borderColor = 'var(--green-border)';
                     e.currentTarget.style.background = 'var(--bg-hover)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border-default)';
+                    if (savings > 40) {
+                      e.currentTarget.style.borderColor = 'var(--gold-border)';
+                    } else {
+                      e.currentTarget.style.borderColor = 'var(--border-default)';
+                    }
                     e.currentTarget.style.background = 'var(--bg-primary)';
                   }}
                 >
+                  {savings > 40 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '-8px',
+                      right: '12px',
+                      background: 'var(--gold)',
+                      color: 'var(--bg-primary)',
+                      padding: '2px 10px',
+                      borderRadius: '10px',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                    }}>
+                      {savings}% OFF
+                    </div>
+                  )}
+                  
                   <div>
                     <div style={{
                       fontWeight: 600,
                       color: 'var(--text-secondary)',
                       fontSize: '15px',
                     }}>
-                      {pkg.name}
+                      {pkg.badge} {pkg.name}
                     </div>
                     <div style={{
                       fontSize: '13px',
                       color: 'var(--text-meta)',
                     }}>
-                      {pkg.coins} BG • {pkg.priceDisplay}
+                      {pkg.coins.toLocaleString()} BG
+                    </div>
+                    <div style={{
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      marginTop: '2px',
+                    }}>
+                      ₦{pricePerCoin}/coin
                     </div>
                   </div>
                   <div style={{
                     textAlign: 'right',
                   }}>
                     <div style={{
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      color: 'var(--green)',
+                      fontSize: '18px',
+                      fontWeight: 700,
+                      color: 'var(--gold)',
                     }}>
                       {pkg.priceDisplay}
                     </div>
@@ -174,7 +205,7 @@ export default function BuyCoinsModal({ onClose }: BuyCoinsModalProps) {
                       fontSize: '11px',
                       color: 'var(--text-muted)',
                     }}>
-                      ₦{pricePerCoin}/coin
+                      {pkg.coins.toLocaleString()} BG
                     </div>
                   </div>
                 </button>
