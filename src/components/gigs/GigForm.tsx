@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useStore } from '../../lib/store';
+import { sanitizeText, validateGigInput } from '../../lib/validation';
 
 const categories = ['Tutoring', 'Errands', 'Tech Help', 'Creative', 'Rides', 'Food', 'Other'];
 const GIG_LISTING_FEE = 2;
@@ -15,6 +16,7 @@ export default function GigForm() {
   const [reward, setReward] = useState('');
   const [isPremium, setIsPremium] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<string[]>([]);
 
   const handleClose = () => {
     closeModal();
@@ -24,29 +26,38 @@ export default function GigForm() {
     setType('needed');
     setReward('');
     setIsPremium(false);
+    setErrors([]);
   };
 
   const totalCost = (parseInt(reward) || 0) + GIG_LISTING_FEE + (isPremium ? PREMIUM_GIG_PRICE : 0);
 
   const handleSubmit = async () => {
-    if (!title.trim()) {
-      showToast('Title is required', 'error');
-      return;
-    }
     const rewardNum = parseInt(reward, 10);
-    if (!rewardNum || rewardNum <= 0) {
-      showToast('Enter a valid reward amount', 'error');
+    
+    // ✅ Validate input
+    const validation = validateGigInput(title, description, rewardNum);
+    if (!validation.valid) {
+      setErrors(validation.errors);
+      // Show first error as toast
+      if (validation.errors.length > 0) {
+        showToast(validation.errors[0], 'error');
+      }
       return;
     }
+    setErrors([]);
 
     if (user && user.balance < totalCost) {
       showToast(`Insufficient balance. Need ${totalCost} BG`, 'error');
       return;
     }
 
+    // ✅ Sanitize input
+    const sanitizedTitle = sanitizeText(title);
+    const sanitizedDescription = sanitizeText(description);
+
     setLoading(true);
     try {
-      await postGig(title.trim(), description.trim(), category, type, rewardNum, isPremium);
+      await postGig(sanitizedTitle, sanitizedDescription, category, type, rewardNum, isPremium);
       handleClose();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to post gig';
@@ -72,6 +83,22 @@ export default function GigForm() {
         <p style={{ color: 'var(--text-meta)', fontSize: '13px', marginBottom: '24px' }}>
           Offer your services or request help from others
         </p>
+
+        {errors.length > 0 && (
+          <div style={{
+            background: 'var(--red-bg)',
+            border: '1px solid var(--red-border)',
+            borderRadius: 'var(--radius-md)',
+            padding: '12px',
+            marginBottom: '16px',
+          }}>
+            {errors.map((error, index) => (
+              <div key={index} style={{ color: 'var(--red)', fontSize: '13px' }}>
+                • {error}
+              </div>
+            ))}
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
           <button
@@ -137,6 +164,9 @@ export default function GigForm() {
             rows={3}
             style={{ resize: 'none' }}
           />
+          <div style={{ fontSize: '11px', color: 'var(--text-meta)', textAlign: 'right', marginTop: '4px' }}>
+            {description.length}/300
+          </div>
         </div>
 
         <div style={{ marginBottom: '16px' }}>
@@ -173,11 +203,15 @@ export default function GigForm() {
           <input
             type="number"
             className="input-dark"
-            placeholder="How many BG coins?"
+            placeholder="How many BG coins? (Max 1000)"
             value={reward}
             onChange={(e) => setReward(e.target.value)}
             min="1"
+            max="1000"
           />
+          <div style={{ fontSize: '11px', color: 'var(--text-meta)', marginTop: '4px' }}>
+            Min: 1 BG • Max: 1000 BG
+          </div>
         </div>
 
         {/* Premium Gig Option */}
