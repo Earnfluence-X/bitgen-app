@@ -46,7 +46,7 @@ export default function BuyCoinsModal({ onClose }: BuyCoinsModalProps) {
           
           if (success) {
             await refreshUser();
-            showToast(` Purchased ${pkg.coins.toLocaleString()} BG coins successfully!`, 'success');
+            showToast(`Purchased ${pkg.coins.toLocaleString()} BG coins successfully!`, 'success');
             onClose();
           } else {
             showToast('Payment confirmed but failed to credit coins. Contact support.', 'error');
@@ -82,7 +82,7 @@ export default function BuyCoinsModal({ onClose }: BuyCoinsModalProps) {
           color: 'var(--text-primary)',
           marginBottom: '4px',
         }}>
-          💳 Buy BG Coins
+          Buy BG Coins
         </h2>
         <p style={{
           color: 'var(--text-meta)',
@@ -165,7 +165,7 @@ export default function BuyCoinsModal({ onClose }: BuyCoinsModalProps) {
                       color: 'var(--text-secondary)',
                       fontSize: '15px',
                     }}>
-                      {pkg.badge} {pkg.name}
+                      {pkg.badge ? `${pkg.badge} ` : ''}{pkg.name}
                     </div>
                     <div style={{
                       fontSize: '13px',
@@ -213,7 +213,7 @@ export default function BuyCoinsModal({ onClose }: BuyCoinsModalProps) {
           color: 'var(--text-meta)',
           textAlign: 'center',
         }}>
-          💳 Secure payment via Paystack • Instant coin delivery
+          Secure payment via Paystack • Instant coin delivery
         </div>
 
         <button
