@@ -10,7 +10,7 @@ interface BuyCoinsModalProps {
 }
 
 export default function BuyCoinsModal({ onClose }: BuyCoinsModalProps) {
-  const { user, showToast } = useStore();
+  const { user, showToast, refreshUser } = useStore();
   const [selectedPackage, setSelectedPackage] = useState<typeof COIN_PACKAGES[0] | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -45,12 +45,14 @@ export default function BuyCoinsModal({ onClose }: BuyCoinsModalProps) {
           );
           
           if (success) {
+            await refreshUser();
             showToast(`🎉 Purchased ${pkg.coins.toLocaleString()} BG coins successfully!`, 'success');
             onClose();
           } else {
             showToast('Payment confirmed but failed to credit coins. Contact support.', 'error');
           }
         } catch (error) {
+          console.error('Purchase error:', error);
           showToast('Failed to process purchase', 'error');
         }
       },
@@ -139,18 +141,6 @@ export default function BuyCoinsModal({ onClose }: BuyCoinsModalProps) {
                     width: '100%',
                     textAlign: 'left',
                     position: 'relative',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--green-border)';
-                    e.currentTarget.style.background = 'var(--bg-hover)';
-                  }}
-                  onMouseLeave={(e) => {
-                    if (savings > 40) {
-                      e.currentTarget.style.borderColor = 'var(--gold-border)';
-                    } else {
-                      e.currentTarget.style.borderColor = 'var(--border-default)';
-                    }
-                    e.currentTarget.style.background = 'var(--bg-primary)';
                   }}
                 >
                   {savings > 40 && (
