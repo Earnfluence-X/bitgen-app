@@ -88,7 +88,7 @@ export async function getUserTransactions(
   return { transactions, lastVisible };
 }
 
-// Helper to get user-specific transactions with real-time listener
+// Helper to get user-specific transactions with real-time listener (LIMIT 20)
 export function listenToUserTransactions(
   userId: string,
   callback: (transactions: any[]) => void
@@ -97,7 +97,7 @@ export function listenToUserTransactions(
     collection(db, 'transactions'),
     where('participants', 'array-contains', userId),
     orderBy('createdAt', 'desc'),
-    limit(50)
+    limit(20)
   );
   
   return onSnapshot(q, (snapshot) => {
@@ -109,7 +109,7 @@ export function listenToUserTransactions(
   });
 }
 
-// Helper to get user-specific gigs
+// Helper to get user-specific gigs (LIMIT 20)
 export function listenToUserGigs(
   userId: string,
   callback: (gigs: any[]) => void
@@ -118,7 +118,7 @@ export function listenToUserGigs(
     collection(db, 'gigs'),
     where('posterId', '==', userId),
     orderBy('createdAt', 'desc'),
-    limit(50)
+    limit(20)
   );
   
   return onSnapshot(q, (snapshot) => {
@@ -130,13 +130,13 @@ export function listenToUserGigs(
   });
 }
 
-// Helper to get all active gigs (for browsing)
+// Helper to get all active gigs for browsing (LIMIT 20)
 export function listenToActiveGigs(callback: (gigs: any[]) => void) {
   const q = query(
     collection(db, 'gigs'),
     where('status', 'in', ['open', 'requested']),
     orderBy('createdAt', 'desc'),
-    limit(50)
+    limit(20)
   );
   
   return onSnapshot(q, (snapshot) => {

@@ -17,7 +17,21 @@ import {
 } from './firebase';
 import type { UserProfile, Transaction, Gig, TabType, UserSearchResult, Applicant, ModalType } from '../types';
 import { getTodayDateString, generateReferralCode, validateReferralCode, applyReferralBonus } from './utils';
-import { getCachedSearch, setCachedSearch, updateCache, getCachedBalance } from './storage';
+import { 
+  getCachedSearch, 
+  setCachedSearch, 
+  updateCache, 
+  getCachedBalance,
+  cacheUserData,
+  getCachedUserData,
+  cacheTransactions,
+  getCachedTransactions,
+  cacheGigs,
+  getCachedGigs,
+  clearUserCache,
+  cacheLeaderboard,
+  getCachedLeaderboard
+} from './cache';
 
 const MAX_TRANSACTION_AMOUNT = 500;
 const SEND_COOLDOWN_MS = 3000;
@@ -99,15 +113,45 @@ export const useStore = create<BitGenStore>((set, get) => {
         unsubscribers = [];
 
         if (firebaseUser) {
+          console.log('🔐 User logged in:', firebaseUser.uid);
           set({ firebaseUser, authLoading: false });
+
+          // ✅ Check cache first
+          const cachedUser = getCachedUserData(firebaseUser.uid);
+          if (cachedUser) {
+            console.log('📦 Using cached user data');
+            set({
+              user: { id: firebaseUser.uid, ...cachedUser },
+              balance: cachedUser.balance || 0
+            });
+          }
+
+          // ✅ Check cached transactions
+          const cachedTx = getCachedTransactions(firebaseUser.uid);
+          if (cachedTx) {
+            console.log('📦 Using cached transactions:', cachedTx.length);
+            set({ transactions: cachedTx });
+          }
+
+          // ✅ Check cached gigs
+          const cachedGigs = getCachedGigs(firebaseUser.uid);
+          if (cachedGigs) {
+            console.log('📦 Using cached gigs:', cachedGigs.length);
+            set((state) => ({
+              gigs: [...state.gigs.filter(g => g.posterId !== firebaseUser.uid), ...cachedGigs]
+            }));
+          }
 
           const userUnsub = onSnapshot(doc(db, 'users', firebaseUser.uid), (userDoc) => {
             if (userDoc.exists()) {
               const userData = userDoc.data() as Omit<UserProfile, 'id'>;
+              console.log('👤 User data updated:', userData.username);
               set({
                 user: { id: firebaseUser.uid, ...userData },
                 balance: userData.balance || 0
               });
+              // ✅ Cache updated user data
+              cacheUserData(firebaseUser.uid, userData);
               updateCache(userData.balance || 0, []);
               
               if (!userData.transactionPin) {
@@ -118,7 +162,10 @@ export const useStore = create<BitGenStore>((set, get) => {
           unsubscribers.push(userUnsub);
 
           const txUnsub = listenToUserTransactions(firebaseUser.uid, (transactions) => {
+            console.log('📊 Transactions received:', transactions.length);
             set({ transactions });
+            // ✅ Cache transactions
+            cacheTransactions(firebaseUser.uid, transactions);
           });
           unsubscribers.push(txUnsub);
 
@@ -126,6 +173,8 @@ export const useStore = create<BitGenStore>((set, get) => {
             set((state) => ({
               gigs: [...state.gigs.filter(g => g.posterId !== firebaseUser.uid), ...userGigs]
             }));
+            // ✅ Cache gigs
+            cacheGigs(firebaseUser.uid, userGigs);
           });
           unsubscribers.push(userGigsUnsub);
 
@@ -137,6 +186,11 @@ export const useStore = create<BitGenStore>((set, get) => {
           unsubscribers.push(activeGigsUnsub);
 
         } else {
+          console.log('🔐 User logged out');
+          // ✅ Clear cache on logout
+          if (get().firebaseUser) {
+            clearUserCache(get().firebaseUser!.uid);
+          }
           set({
             firebaseUser: null,
             user: null,
@@ -166,12 +220,16 @@ export const useStore = create<BitGenStore>((set, get) => {
           balance: userData.balance || 0
         });
         updateCache(userData.balance || 0, []);
+        cacheUserData(firebaseUser.uid, userData);
       }
     },
 
     logout: async () => {
       unsubscribers.forEach(unsub => unsub());
       unsubscribers = [];
+      if (get().firebaseUser) {
+        clearUserCache(get().firebaseUser!.uid);
+      }
       await fbSignOut(auth);
       set({
         firebaseUser: null,

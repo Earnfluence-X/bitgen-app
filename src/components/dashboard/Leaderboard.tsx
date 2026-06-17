@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useStore } from '../../lib/store';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import { cacheLeaderboard, getCachedLeaderboard } from '../../lib/cache';
 
 interface LeaderboardUser {
   id: string;
@@ -22,6 +23,14 @@ export default function Leaderboard() {
 
   const loadLeaderboard = async () => {
     try {
+      // ✅ Check cache first
+      const cached = getCachedLeaderboard();
+      if (cached) {
+        setUsers(cached);
+        setLoading(false);
+        return;
+      }
+
       const usersRef = collection(db, 'users');
       const q = query(usersRef, orderBy('balance', 'desc'), limit(5));
       const snapshot = await getDocs(q);
@@ -35,6 +44,8 @@ export default function Leaderboard() {
       }));
       
       setUsers(leaderboardUsers);
+      // ✅ Cache leaderboard
+      cacheLeaderboard(leaderboardUsers);
     } catch (error) {
       console.error('Error loading leaderboard:', error);
     } finally {
@@ -106,7 +117,6 @@ export default function Leaderboard() {
       position: 'relative',
       overflow: 'hidden',
     }}>
-      {/* Decorative glow */}
       <div style={{
         position: 'absolute',
         top: '-50%',
@@ -153,7 +163,6 @@ export default function Leaderboard() {
               cursor: 'default',
             }}
           >
-            {/* Rank */}
             <div style={{
               width: '32px',
               fontSize: index < 3 ? '20px' : '13px',
@@ -164,7 +173,6 @@ export default function Leaderboard() {
               {getRankEmoji(index)}
             </div>
 
-            {/* Avatar */}
             <div style={{
               width: '36px',
               height: '36px',
@@ -184,7 +192,6 @@ export default function Leaderboard() {
               {leaderboardUser.username.charAt(0).toUpperCase()}
             </div>
 
-            {/* User Info */}
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{
                 fontSize: '14px',
@@ -221,7 +228,6 @@ export default function Leaderboard() {
               </div>
             </div>
 
-            {/* Balance */}
             <div style={{
               fontSize: '16px',
               fontWeight: 700,

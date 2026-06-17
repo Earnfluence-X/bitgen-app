@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useStore } from '../../lib/store';
 import { formatTimeAgo } from '../../lib/utils';
 import type { Transaction } from '../../types';
@@ -42,6 +43,7 @@ function getTransactionDisplay(tx: Transaction, userId: string) {
 
 export default function ActivityFeed() {
   const { transactions, user } = useStore();
+  const [visibleCount, setVisibleCount] = useState(5);
 
   if (!user) {
     return (
@@ -68,6 +70,9 @@ export default function ActivityFeed() {
     (tx) => tx.senderId === user.id || tx.recipientId === user.id
   );
 
+  const visibleTransactions = myTransactions.slice(0, visibleCount);
+  const hasMore = myTransactions.length > visibleCount;
+
   return (
     <div>
       <div className="section-header">
@@ -87,26 +92,56 @@ export default function ActivityFeed() {
             No transactions yet. Send or receive coins to get started.
           </div>
         ) : (
-          myTransactions.slice(0, 10).map((tx) => {
-            const display = getTransactionDisplay(tx, user.id);
-            return (
-              <div key={tx.id} className="tx-item">
-                <div className={`tx-icon ${display.iconClass}`}>
-                  {display.iconSymbol}
-                </div>
-                <div className="tx-info">
-                  <div className="tx-username">{display.name}</div>
-                  <div className="tx-type">{display.label}</div>
-                </div>
-                <div className="tx-right">
-                  <div className={`tx-amount ${display.amountClass}`}>
-                    {display.prefix}{tx.amount} BG
+          <>
+            {visibleTransactions.map((tx) => {
+              const display = getTransactionDisplay(tx, user.id);
+              return (
+                <div key={tx.id} className="tx-item">
+                  <div className={`tx-icon ${display.iconClass}`}>
+                    {display.iconSymbol}
                   </div>
-                  <div className="tx-time">{formatTimeAgo(tx.createdAt)}</div>
+                  <div className="tx-info">
+                    <div className="tx-username">{display.name}</div>
+                    <div className="tx-type">{display.label}</div>
+                  </div>
+                  <div className="tx-right">
+                    <div className={`tx-amount ${display.amountClass}`}>
+                      {display.prefix}{tx.amount} BG
+                    </div>
+                    <div className="tx-time">{formatTimeAgo(tx.createdAt)}</div>
+                  </div>
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+            
+            {hasMore && (
+              <button
+                onClick={() => setVisibleCount(prev => prev + 5)}
+                style={{
+                  padding: '10px',
+                  background: 'var(--bg-hover)',
+                  border: '1px solid var(--border-default)',
+                  borderRadius: 'var(--radius-md)',
+                  color: 'var(--text-meta)',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  fontSize: '13px',
+                  width: '100%',
+                  transition: '0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--green-border)';
+                  e.currentTarget.style.color = 'var(--green)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border-default)';
+                  e.currentTarget.style.color = 'var(--text-meta)';
+                }}
+              >
+                Load More ({myTransactions.length - visibleCount} remaining)
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>
