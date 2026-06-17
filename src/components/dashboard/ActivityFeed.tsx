@@ -43,14 +43,7 @@ function getTransactionDisplay(tx: Transaction, userId: string) {
 export default function ActivityFeed() {
   const { transactions, user } = useStore();
 
-  // ✅ DEBUG LOGS ADDED
-  console.log('📋 ActivityFeed - Transactions:', transactions);
-  console.log('📋 ActivityFeed - Transactions count:', transactions.length);
-  console.log('📋 ActivityFeed - User:', user);
-  console.log('📋 ActivityFeed - User ID:', user?.id);
-
   if (!user) {
-    console.log('❌ No user in ActivityFeed');
     return (
       <div>
         <div className="section-header">
@@ -71,14 +64,9 @@ export default function ActivityFeed() {
     );
   }
 
-  // Filter transactions relevant to this user
   const myTransactions = transactions.filter(
     (tx) => tx.senderId === user.id || tx.recipientId === user.id
   );
-
-  // ✅ DEBUG LOGS ADDED
-  console.log('📋 My transactions count:', myTransactions.length);
-  console.log('📋 My transactions:', myTransactions);
 
   return (
     <div>

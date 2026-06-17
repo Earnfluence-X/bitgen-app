@@ -99,13 +99,11 @@ export const useStore = create<BitGenStore>((set, get) => {
         unsubscribers = [];
 
         if (firebaseUser) {
-          console.log('🔐 User logged in:', firebaseUser.uid);
           set({ firebaseUser, authLoading: false });
 
           const userUnsub = onSnapshot(doc(db, 'users', firebaseUser.uid), (userDoc) => {
             if (userDoc.exists()) {
               const userData = userDoc.data() as Omit<UserProfile, 'id'>;
-              console.log('👤 User data loaded:', userData.username);
               set({
                 user: { id: firebaseUser.uid, ...userData },
                 balance: userData.balance || 0
@@ -120,8 +118,6 @@ export const useStore = create<BitGenStore>((set, get) => {
           unsubscribers.push(userUnsub);
 
           const txUnsub = listenToUserTransactions(firebaseUser.uid, (transactions) => {
-            console.log('📊 Transactions received:', transactions.length);
-            console.log('📊 First transaction:', transactions[0] || 'None');
             set({ transactions });
           });
           unsubscribers.push(txUnsub);
@@ -141,7 +137,6 @@ export const useStore = create<BitGenStore>((set, get) => {
           unsubscribers.push(activeGigsUnsub);
 
         } else {
-          console.log('🔐 User logged out');
           set({
             firebaseUser: null,
             user: null,
@@ -306,13 +301,10 @@ export const useStore = create<BitGenStore>((set, get) => {
       return user?.transactionPin === pin;
     },
 
-    // ✅ UPDATED: Fees go to admin account
     sendToUsername: async (recipientUserTag: string, amount: number, note: string, senderPin: string) => {
       const { firebaseUser, user, lastSendTime } = get();
       if (!firebaseUser || !user) throw new Error('Not authenticated');
       if (isDemo) throw new Error('Demo mode - connect Firebase');
-      
-      console.log('💸 Sending coins:', { recipientUserTag, amount, note });
       
       const now = Date.now();
       if (now - lastSendTime < SEND_COOLDOWN_MS) {
@@ -345,7 +337,6 @@ export const useStore = create<BitGenStore>((set, get) => {
       
       const usersRef = collection(db, 'users');
       
-      // 🔍 Find recipient
       const q = query(usersRef, where('userTag', '==', recipientUserTag.toLowerCase()));
       const snapshot = await getDocs(q);
       
@@ -363,45 +354,36 @@ export const useStore = create<BitGenStore>((set, get) => {
         return false;
       }
       
-      // 🔍 Find admin user
       const adminQuery = query(usersRef, where('userTag', '==', '@admin'));
       const adminSnapshot = await getDocs(adminQuery);
       let adminId = null;
       if (!adminSnapshot.empty) {
         adminId = adminSnapshot.docs[0].id;
-        console.log('👑 Admin found:', adminId);
-      } else {
-        console.log('⚠️ Admin user @admin not found!');
       }
       
       set({ lastSendTime: now });
       
       const batch = writeBatch(db);
       
-      // 1. Subtract total cost from sender (amount + fee)
       batch.update(doc(db, 'users', firebaseUser.uid), {
         balance: increment(-totalCost),
         totalSpent: increment(amount),
       });
       
-      // 2. Add amount to recipient
       batch.update(doc(db, 'users', recipientId), {
         balance: increment(amount),
         totalEarned: increment(amount),
       });
       
-      // 3. ✅ Add fee to admin account
       if (adminId) {
         batch.update(doc(db, 'users', adminId), {
           balance: increment(TRANSACTION_FEE),
           totalEarned: increment(TRANSACTION_FEE),
         });
-        console.log(`💰 ${TRANSACTION_FEE} BG fee sent to admin`);
       }
       
       await batch.commit();
       
-      // Record the transaction
       await addTransaction({
         type: 'transfer',
         senderId: firebaseUser.uid,
@@ -415,7 +397,6 @@ export const useStore = create<BitGenStore>((set, get) => {
         fee: TRANSACTION_FEE,
       });
       
-      // Record fee transaction
       await addDoc(collection(db, 'feeTransactions'), {
         type: 'fee',
         senderId: firebaseUser.uid,
@@ -429,7 +410,6 @@ export const useStore = create<BitGenStore>((set, get) => {
         createdAt: serverTimestamp(),
       });
       
-      console.log('✅ Transaction complete!');
       get().showToast(`Sent ${amount} BG to ${recipient.userTag} (${TRANSACTION_FEE} BG fee applied)`, 'success');
       return true;
     },
@@ -478,7 +458,6 @@ export const useStore = create<BitGenStore>((set, get) => {
       return true;
     },
 
-    // ✅ UPDATED: Listing fee and premium fee go to admin
     postGig: async (title, description, category, type, reward, isPremium = false) => {
       const { firebaseUser, user } = get();
       if (!firebaseUser || !user) throw new Error('Not authenticated');
@@ -490,7 +469,6 @@ export const useStore = create<BitGenStore>((set, get) => {
         throw new Error(`Insufficient balance. Need ${totalCost} BG (${GIG_LISTING_FEE} listing fee${isPremium ? ` + ${PREMIUM_GIG_PRICE} premium` : ''})`);
       }
 
-      // 🔍 Find admin user
       const usersRef = collection(db, 'users');
       const adminQuery = query(usersRef, where('userTag', '==', '@admin'));
       const adminSnapshot = await getDocs(adminQuery);
@@ -501,19 +479,16 @@ export const useStore = create<BitGenStore>((set, get) => {
 
       const batch = writeBatch(db);
 
-      // Deduct fees from user
       batch.update(doc(db, 'users', firebaseUser.uid), {
         balance: increment(-totalCost),
       });
 
-      // ✅ Add fees to admin
       if (adminId) {
         const feeAmount = GIG_LISTING_FEE + (isPremium ? PREMIUM_GIG_PRICE : 0);
         batch.update(doc(db, 'users', adminId), {
           balance: increment(feeAmount),
           totalEarned: increment(feeAmount),
         });
-        console.log(`💰 ${feeAmount} BG gig fees sent to admin`);
       }
 
       await batch.commit();
@@ -543,7 +518,6 @@ export const useStore = create<BitGenStore>((set, get) => {
         gigsPosted: increment(1),
       });
 
-      // Track listing fee
       await addDoc(collection(db, 'feeTransactions'), {
         type: 'listing_fee',
         senderId: firebaseUser.uid,
@@ -710,7 +684,6 @@ export const useStore = create<BitGenStore>((set, get) => {
       get().showToast('Gig completed!', 'success');
     },
 
-    // ✅ UPDATED: Cancellation fee goes to admin
     cancelGig: async (gigId: string, reason?: string) => {
       const { firebaseUser, user } = get();
       if (!firebaseUser || !user) throw new Error('Not authenticated');
@@ -736,7 +709,6 @@ export const useStore = create<BitGenStore>((set, get) => {
         return;
       }
 
-      // 🔍 Find admin user
       const usersRef = collection(db, 'users');
       const adminQuery = query(usersRef, where('userTag', '==', '@admin'));
       const adminSnapshot = await getDocs(adminQuery);
@@ -747,18 +719,15 @@ export const useStore = create<BitGenStore>((set, get) => {
 
       const batch = writeBatch(db);
 
-      // Deduct fee from user
       batch.update(doc(db, 'users', firebaseUser.uid), {
         balance: increment(-GIG_CANCELLATION_FEE),
       });
 
-      // ✅ Add fee to admin
       if (adminId) {
         batch.update(doc(db, 'users', adminId), {
           balance: increment(GIG_CANCELLATION_FEE),
           totalEarned: increment(GIG_CANCELLATION_FEE),
         });
-        console.log(`💰 ${GIG_CANCELLATION_FEE} BG cancellation fee sent to admin`);
       }
 
       await batch.commit();
@@ -788,7 +757,6 @@ export const useStore = create<BitGenStore>((set, get) => {
       get().showToast(`Gig cancelled (${GIG_CANCELLATION_FEE} BG fee applied)`, 'success');
     },
 
-    // ✅ UPDATED: Verified badge fee goes to admin
     purchaseVerifiedBadge: async () => {
       const { firebaseUser, user } = get();
       if (!firebaseUser || !user) throw new Error('Not authenticated');
@@ -803,7 +771,6 @@ export const useStore = create<BitGenStore>((set, get) => {
         return;
       }
 
-      // 🔍 Find admin user
       const usersRef = collection(db, 'users');
       const adminQuery = query(usersRef, where('userTag', '==', '@admin'));
       const adminSnapshot = await getDocs(adminQuery);
@@ -814,20 +781,17 @@ export const useStore = create<BitGenStore>((set, get) => {
 
       const batch = writeBatch(db);
 
-      // Deduct from user
       batch.update(doc(db, 'users', firebaseUser.uid), {
         balance: increment(-VERIFIED_BADGE_COST),
         isVerified: true,
         verifiedAt: new Date().toISOString(),
       });
 
-      // ✅ Add fee to admin
       if (adminId) {
         batch.update(doc(db, 'users', adminId), {
           balance: increment(VERIFIED_BADGE_COST),
           totalEarned: increment(VERIFIED_BADGE_COST),
         });
-        console.log(`💰 ${VERIFIED_BADGE_COST} BG verified badge fee sent to admin`);
       }
 
       await batch.commit();
