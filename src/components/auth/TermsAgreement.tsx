@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface TermsAgreementProps {
   onAgree: () => void;
   isSubmitting?: boolean;
+  hasAgreed: boolean;
 }
 
 const TERMS_TEXT = `BITGEN - TERMS OF SERVICE
@@ -58,16 +59,17 @@ Email: earnfluencex@gmail.com
 
 By checking "Agree & Continue", you acknowledge that you have read, understood, and agree to all terms above.`;
 
-export default function TermsAgreement({ onAgree, isSubmitting = false }: TermsAgreementProps) {
+export default function TermsAgreement({ 
+  onAgree, 
+  isSubmitting = false,
+  hasAgreed 
+}: TermsAgreementProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [hasScrolled, setHasScrolled] = useState(false);
 
-  // Split text into lines for scrolling effect
   const lines = TERMS_TEXT.split('\n');
-  const visibleLines = 3; // Show 3 lines at a time
 
-  // Check if user has scrolled at least 3 lines
   const handleScroll = () => {
     if (!scrollContainerRef.current) return;
     const { scrollTop } = scrollContainerRef.current;
@@ -76,7 +78,6 @@ export default function TermsAgreement({ onAgree, isSubmitting = false }: TermsA
     }
   };
 
-  // Reset scroll state when expanded
   useEffect(() => {
     if (isExpanded) {
       setHasScrolled(false);
@@ -112,6 +113,17 @@ export default function TermsAgreement({ onAgree, isSubmitting = false }: TermsA
         <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span>📋</span>
           Terms of Agreement
+          {hasAgreed && (
+            <span style={{ 
+              fontSize: '11px', 
+              color: 'var(--green)',
+              background: 'var(--green-bg)',
+              padding: '2px 10px',
+              borderRadius: '10px',
+            }}>
+              ✅ Agreed
+            </span>
+          )}
         </span>
         <span style={{
           fontSize: '18px',
@@ -122,7 +134,7 @@ export default function TermsAgreement({ onAgree, isSubmitting = false }: TermsA
         </span>
       </button>
 
-      {/* Expandable Terms Content - Shows 3 lines at a time */}
+      {/* Expandable Terms Content */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
@@ -139,7 +151,7 @@ export default function TermsAgreement({ onAgree, isSubmitting = false }: TermsA
               ref={scrollContainerRef}
               onScroll={handleScroll}
               style={{
-                height: '120px', // Fixed height showing ~3 lines
+                height: '120px',
                 overflowY: 'auto',
                 background: 'var(--bg-primary)',
                 border: '1px solid var(--border-default)',
@@ -152,7 +164,7 @@ export default function TermsAgreement({ onAgree, isSubmitting = false }: TermsA
                 scrollBehavior: 'smooth',
               }}
             >
-              {/* Gradient fade at bottom to indicate more content */}
+              {/* Gradient fade at bottom */}
               <div style={{
                 position: 'sticky',
                 bottom: 0,
@@ -162,7 +174,6 @@ export default function TermsAgreement({ onAgree, isSubmitting = false }: TermsA
                 marginTop: '-30px',
               }} />
 
-              {/* Text content - each line separated */}
               {lines.map((line, index) => {
                 const isBold = line.startsWith('BITGEN') || 
                               line.includes('TERMS OF SERVICE') ||
@@ -206,7 +217,7 @@ export default function TermsAgreement({ onAgree, isSubmitting = false }: TermsA
               </span>
             </div>
 
-            {/* Agree Button - Always enabled */}
+            {/* ✅ Agree Button - Always visible */}
             <button
               type="button"
               onClick={onAgree}

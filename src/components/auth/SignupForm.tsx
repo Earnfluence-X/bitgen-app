@@ -177,6 +177,7 @@ export default function SignupForm({ onSwitch }: SignupFormProps) {
       <TermsAgreement 
         onAgree={handleTermsAgree} 
         isSubmitting={loading}
+        hasAgreed={agreedToTerms}
       />
 
       {error && (
@@ -185,25 +186,14 @@ export default function SignupForm({ onSwitch }: SignupFormProps) {
         </div>
       )}
 
-      {agreedToTerms && (
-        <div style={{ 
-          color: 'var(--green)', 
-          fontSize: '12px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '6px' 
-        }}>
-          ✅ Terms agreed
-        </div>
-      )}
-
+      {/* ✅ CREATE ACCOUNT BUTTON - Always visible, disabled if not agreed */}
       <button
         type="submit"
         className="btn btn-primary"
         disabled={loading || !agreedToTerms}
         style={{ 
           marginTop: '8px',
-          opacity: agreedToTerms ? 1 : 0.5,
+          opacity: agreedToTerms ? 1 : 0.4,
           cursor: agreedToTerms ? 'pointer' : 'not-allowed',
         }}
       >
