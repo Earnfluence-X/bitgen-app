@@ -11,6 +11,7 @@ import ReceiveFlow from './components/receive/ReceiveFlow';
 import GigForm from './components/gigs/GigForm';
 import SetPinModal from './components/profile/SetPinModal';
 import AdminDashboard from './components/admin/AdminDashboard';
+import BuyCoinsModal from './components/payments/BuyCoinsModal';
 
 function LoadingScreen() {
   return (
@@ -49,7 +50,6 @@ function AppContent() {
   const { activeTab, activeModal, firebaseUser, user } = useStore();
   const { checkAdmin, isAdmin, adminChecked } = useAdminStore();
 
-  // Check admin status when user logs in
   useEffect(() => {
     if (firebaseUser && user && !adminChecked) {
       checkAdmin(firebaseUser.uid, firebaseUser.email || '');
@@ -66,6 +66,7 @@ function AppContent() {
       {activeModal === 'receive' && <ReceiveFlow />}
       {activeModal === 'gig' && <GigForm />}
       {activeModal === 'pin' && <SetPinModal />}
+      {activeModal === 'buy' && <BuyCoinsModal onClose={() => useStore.getState().closeModal()} />}
     </AppShell>
   );
 }

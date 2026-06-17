@@ -20,13 +20,13 @@ export interface UserProfile {
   referredBy?: string;
   agreedToTerms?: boolean;
   agreedToTermsAt?: string;
-  isVerified?: boolean;        // ✅ ADDED - Verified badge
-  verifiedAt?: string;         // ✅ ADDED - When verified
+  isVerified?: boolean;
+  verifiedAt?: string;
 }
 
 export interface Transaction {
   id: string;
-  type: 'transfer' | 'bonus' | 'gig_payment' | 'referral_bonus' | 'referral_fee' | 'listing_fee' | 'cancellation_fee' | 'verified_badge';
+  type: 'transfer' | 'bonus' | 'gig_payment' | 'referral_bonus' | 'referral_fee' | 'listing_fee' | 'cancellation_fee' | 'verified_badge' | 'purchase';
   senderId: string;
   senderUsername: string;
   senderUserTag: string;
@@ -65,12 +65,12 @@ export interface Gig {
   completedByUsername: string | null;
   createdAt: unknown;
   completedAt: unknown;
-  isPremium?: boolean;         // ✅ ADDED - Premium gig flag
-  premiumExpiresAt?: string;   // ✅ ADDED - Premium expiration
-  listingFeePaid?: number;     // ✅ ADDED - Fee paid
-  cancelledBy?: string;        // ✅ ADDED - Who cancelled
-  cancelledAt?: string;        // ✅ ADDED - When cancelled
-  cancellationReason?: string; // ✅ ADDED - Why cancelled
+  isPremium?: boolean;
+  premiumExpiresAt?: string;
+  listingFeePaid?: number;
+  cancelledBy?: string;
+  cancelledAt?: string;
+  cancellationReason?: string;
 }
 
 export interface UserSearchResult {
@@ -81,5 +81,17 @@ export interface UserSearchResult {
   matchType?: 'exact' | 'partial';
 }
 
+export interface Purchase {
+  id: string;
+  userId: string;
+  username: string;
+  packageId: string;
+  coins: number;
+  amount: number;
+  reference: string;
+  status: 'pending' | 'completed' | 'failed';
+  createdAt: unknown;
+}
+
 export type TabType = 'home' | 'gigs' | 'profile' | 'admin';
-export type ModalType = 'send' | 'receive' | 'gig' | 'pin' | 'premium' | null;
+export type ModalType = 'send' | 'receive' | 'gig' | 'pin' | 'premium' | 'buy' | null;

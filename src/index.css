@@ -303,6 +303,8 @@ body {
 
 .action-icon-circle.send { background: var(--red-bg); color: var(--red); }
 .action-icon-circle.receive { background: var(--green-bg); color: var(--green); }
+/* Buy button icon - gold */
+.action-icon-circle.buy { background: var(--gold-bg); color: var(--gold); }
 
 /* Section Header */
 .section-header {
@@ -625,6 +627,11 @@ body {
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .slide-up { animation: slideUp 0.3s ease-out; }
