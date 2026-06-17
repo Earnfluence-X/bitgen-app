@@ -46,7 +46,7 @@ export default function BuyCoinsModal({ onClose }: BuyCoinsModalProps) {
           
           if (success) {
             await refreshUser();
-            showToast(`🎉 Purchased ${pkg.coins.toLocaleString()} BG coins successfully!`, 'success');
+            showToast(` Purchased ${pkg.coins.toLocaleString()} BG coins successfully!`, 'success');
             onClose();
           } else {
             showToast('Payment confirmed but failed to credit coins. Contact support.', 'error');
