@@ -1,3 +1,5 @@
+// lib/store.ts
+
 import { create } from 'zustand';
 import type { User as FirebaseUser } from 'firebase/auth';
 import {
@@ -32,6 +34,7 @@ import {
   cacheLeaderboard,
   getCachedLeaderboard
 } from './cache';
+import { logUserActivity } from './admin';
 
 const MAX_TRANSACTION_AMOUNT = 500;
 const SEND_COOLDOWN_MS = 3000;
@@ -115,6 +118,15 @@ export const useStore = create<BitGenStore>((set, get) => {
         if (firebaseUser) {
           console.log('🔐 User logged in:', firebaseUser.uid);
           set({ firebaseUser, authLoading: false });
+
+          // Log login activity
+          await logUserActivity({
+            userId: firebaseUser.uid,
+            username: firebaseUser.displayName || 'user',
+            action: 'login',
+            details: 'User logged in',
+            metadata: { email: firebaseUser.email }
+          });
 
           // ✅ Check cache first
           const cachedUser = getCachedUserData(firebaseUser.uid);
@@ -467,6 +479,15 @@ export const useStore = create<BitGenStore>((set, get) => {
         note: `Transaction fee for sending ${amount} BG`,
         createdAt: serverTimestamp(),
       });
+
+      // ✅ Log activity
+      await logUserActivity({
+        userId: firebaseUser.uid,
+        username: user.username,
+        action: 'send',
+        details: `Sent ${amount} BG to ${recipient.userTag}`,
+        metadata: { recipientId, amount, note }
+      });
       
       get().showToast(`Sent ${amount} BG to ${recipient.userTag} (${TRANSACTION_FEE} BG fee applied)`, 'success');
       return true;
@@ -510,6 +531,15 @@ export const useStore = create<BitGenStore>((set, get) => {
         recipientUserTag: user.userTag,
         amount: bonusAmount,
         note: `Day ${newStreak} streak bonus`,
+      });
+
+      // ✅ Log activity
+      await logUserActivity({
+        userId: firebaseUser.uid,
+        username: user.username,
+        action: 'claim_bonus',
+        details: `Claimed ${bonusAmount} BG daily bonus`,
+        metadata: { bonusAmount, streak: newStreak }
       });
 
       get().showToast(`+${bonusAmount} BG daily bonus! Streak: ${newStreak}`, 'success');
@@ -603,6 +633,15 @@ export const useStore = create<BitGenStore>((set, get) => {
           createdAt: serverTimestamp(),
         });
       }
+
+      // ✅ Log activity
+      await logUserActivity({
+        userId: firebaseUser.uid,
+        username: user.username,
+        action: 'post_gig',
+        details: `Posted gig: ${title}`,
+        metadata: { title, category, reward, isPremium }
+      });
 
       get().showToast(`Gig posted! (${totalCost} BG in fees applied)`, 'success');
     },
@@ -739,6 +778,15 @@ export const useStore = create<BitGenStore>((set, get) => {
         reputationCount: increment(1),
       });
 
+      // ✅ Log activity
+      await logUserActivity({
+        userId: firebaseUser.uid,
+        username: user.username,
+        action: 'complete_gig',
+        details: `Completed gig`,
+        metadata: { gigId, workerId }
+      });
+
       get().showToast('Gig completed!', 'success');
     },
 
@@ -812,6 +860,15 @@ export const useStore = create<BitGenStore>((set, get) => {
         createdAt: serverTimestamp(),
       });
 
+      // ✅ Log activity
+      await logUserActivity({
+        userId: firebaseUser.uid,
+        username: user.username,
+        action: 'cancel_gig',
+        details: `Cancelled gig: ${gigData.title}`,
+        metadata: { gigId, reason }
+      });
+
       get().showToast(`Gig cancelled (${GIG_CANCELLATION_FEE} BG fee applied)`, 'success');
     },
 
@@ -865,6 +922,15 @@ export const useStore = create<BitGenStore>((set, get) => {
         amount: VERIFIED_BADGE_COST,
         note: 'Verified badge purchase',
         createdAt: serverTimestamp(),
+      });
+
+      // ✅ Log activity
+      await logUserActivity({
+        userId: firebaseUser.uid,
+        username: user.username,
+        action: 'verified_badge',
+        details: 'Purchased verified badge',
+        metadata: { cost: VERIFIED_BADGE_COST }
       });
 
       await get().refreshUser();

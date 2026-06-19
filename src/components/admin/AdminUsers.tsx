@@ -1,10 +1,14 @@
+// src/components/admin/AdminUsers.tsx
+
 import { useState } from 'react';
 import { useAdminStore } from '../../lib/adminStore';
 import { formatTimeAgo } from '../../lib/utils';
+import UserDetailModal from './UserDetailModal';
 
 export default function AdminUsers() {
   const { users, loadUsers, suspendUser, unsuspendUser, makeAdmin, removeAdmin } = useAdminStore();
   const [search, setSearch] = useState('');
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
 
   const filteredUsers = users.filter(u => 
     u.username.toLowerCase().includes(search.toLowerCase()) ||
@@ -53,12 +57,24 @@ export default function AdminUsers() {
           </div>
         ) : (
           filteredUsers.map((user) => (
-            <div key={user.id} style={{
-              background: 'var(--bg-primary)',
-              border: `1px solid ${user.isSuspended ? 'var(--red-border)' : 'var(--border-default)'}`,
-              borderRadius: 'var(--radius-lg)',
-              padding: '16px',
-            }}>
+            <div 
+              key={user.id} 
+              style={{
+                background: 'var(--bg-primary)',
+                border: `1px solid ${user.isSuspended ? 'var(--red-border)' : 'var(--border-default)'}`,
+                borderRadius: 'var(--radius-lg)',
+                padding: '16px',
+                cursor: 'pointer',
+                transition: '0.2s',
+              }}
+              onClick={() => setSelectedUser(user.id)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--green-border)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = user.isSuspended ? 'var(--red-border)' : 'var(--border-default)';
+              }}
+            >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
                 <div>
                   <div style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
@@ -95,7 +111,7 @@ export default function AdminUsers() {
                     )}
                   </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
                   <button
                     onClick={() => handleSuspend(user.id, user.isSuspended)}
                     style={{
@@ -128,12 +144,36 @@ export default function AdminUsers() {
                   >
                     {user.isAdmin ? 'Remove Admin' : 'Make Admin'}
                   </button>
+                  <button
+                    onClick={() => setSelectedUser(user.id)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '20px',
+                      background: 'var(--bg-hover)',
+                      border: '1px solid var(--border-default)',
+                      color: 'var(--text-meta)',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    📊 View Details
+                  </button>
                 </div>
               </div>
             </div>
           ))
         )}
       </div>
+
+      {/* User Detail Modal */}
+      {selectedUser && (
+        <UserDetailModal
+          userId={selectedUser}
+          onClose={() => setSelectedUser(null)}
+        />
+      )}
     </div>
   );
 }

@@ -1,3 +1,5 @@
+// lib/admin.ts
+
 import { 
   db, 
   collection, 
@@ -36,6 +38,99 @@ export async function isUserAdmin(userId: string, email: string): Promise<boolea
     console.error('Error checking admin status:', error);
   }
   return false;
+}
+
+// ===== ACTIVITY LOGS =====
+export async function logUserActivity(data: {
+  userId: string;
+  username: string;
+  action: 'login' | 'send' | 'receive' | 'post_gig' | 'claim_bonus' | 'complete_gig' | 'cancel_gig' | 'report' | 'purchase' | 'verified_badge';
+  details: string;
+  metadata?: Record<string, any>;
+}) {
+  try {
+    await addDoc(collection(db, 'activityLogs'), {
+      ...data,
+      timestamp: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error logging activity:', error);
+  }
+}
+
+export async function getActivityLogs(limitCount: number = 50): Promise<any[]> {
+  try {
+    const q = query(
+      collection(db, 'activityLogs'),
+      orderBy('timestamp', 'desc'),
+      limit(limitCount)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      timestamp: doc.data().timestamp?.toDate?.()?.toISOString() || new Date().toISOString(),
+    }));
+  } catch (error) {
+    console.error('Error getting activity logs:', error);
+    return [];
+  }
+}
+
+export async function getActivityLogsByUser(userId: string, limitCount: number = 20): Promise<any[]> {
+  try {
+    const q = query(
+      collection(db, 'activityLogs'),
+      where('userId', '==', userId),
+      orderBy('timestamp', 'desc'),
+      limit(limitCount)
+    );
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      timestamp: doc.data().timestamp?.toDate?.()?.toISOString() || new Date().toISOString(),
+    }));
+  } catch (error) {
+    console.error('Error getting user activity logs:', error);
+    return [];
+  }
+}
+
+// ===== SYSTEM CONFIG =====
+export async function getSystemConfig(): Promise<any> {
+  try {
+    const configDoc = await getDoc(doc(db, 'config', 'system'));
+    if (configDoc.exists()) {
+      return configDoc.data();
+    }
+    return {
+      maxTransactionAmount: 500,
+      transactionFee: 2,
+      gigListingFee: 2,
+      premiumGigPrice: 15,
+      dailyBonusBase: 5,
+      maxDailyBonus: 25,
+      referralBonus: 25,
+      maintenanceMode: false,
+      registrationOpen: true,
+    };
+  } catch (error) {
+    console.error('Error getting system config:', error);
+    return null;
+  }
+}
+
+export async function updateSystemConfig(config: any): Promise<void> {
+  try {
+    await updateDoc(doc(db, 'config', 'system'), {
+      ...config,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error updating system config:', error);
+    throw error;
+  }
 }
 
 // ===== FEE TRACKING =====
@@ -111,7 +206,6 @@ export async function getAdminStats(): Promise<AdminStats> {
   weekAgo.setDate(weekAgo.getDate() - 7);
   const activeThisWeek = users.filter((u: any) => u.lastActiveDate && new Date(u.lastActiveDate) > weekAgo);
 
-  // ✅ Calculate total fees collected
   const totalFeesCollected = feeSnapshot.docs.reduce((sum: number, doc) => sum + (doc.data().amount || 0), 0);
 
   return {
@@ -129,7 +223,7 @@ export async function getAdminStats(): Promise<AdminStats> {
     avgReputation: Math.round(avgReputation * 10) / 10,
     totalCoinsEarned,
     totalCoinsSpent: totalCoinsEarned - totalCoinsInCirculation,
-    totalFeesCollected, // ✅ Added
+    totalFeesCollected,
   };
 }
 
