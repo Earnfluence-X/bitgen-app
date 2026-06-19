@@ -14,54 +14,52 @@ interface LeaderboardUser {
   reputationScore: number;
 }
 
-// ✅ Rank tiers with labels only - NO NUMBERS
-const RANK_TIERS = [
+// ✅ POSITION-BASED RANKS - Each position is UNIQUE
+const POSITION_RANKS = [
   { 
+    position: 1,
     emoji: '👑', 
-    label: 'Legend', 
-    minBalance: 2000,
+    label: 'The Don',
     color: 'var(--gold)',
-    bgColor: 'rgba(255, 215, 0, 0.15)',
+    bgColor: 'rgba(255, 215, 0, 0.20)',
+    borderColor: 'var(--gold)',
   },
   { 
+    position: 2,
     emoji: '🥇', 
-    label: 'Odogwu', 
-    minBalance: 1000,
-    color: 'var(--gold)',
-    bgColor: 'rgba(255, 215, 0, 0.10)',
-  },
-  { 
-    emoji: '🥈', 
-    label: 'Agba baller', 
-    minBalance: 500,
+    label: 'The Boss',
     color: '#C0C0C0',
-    bgColor: 'rgba(192, 192, 192, 0.08)',
+    bgColor: 'rgba(192, 192, 192, 0.15)',
+    borderColor: '#C0C0C0',
   },
   { 
-    emoji: '🥉', 
-    label: 'Baller', 
-    minBalance: 250,
+    position: 3,
+    emoji: '🥈', 
+    label: 'Agba baller',
     color: '#CD7F32',
-    bgColor: 'rgba(205, 127, 50, 0.08)',
+    bgColor: 'rgba(205, 127, 50, 0.15)',
+    borderColor: '#CD7F32',
   },
   { 
-    emoji: '⭐', 
-    label: 'Nepo Baby', 
-    minBalance: 100,
-    color: 'var(--gold)',
-    bgColor: 'rgba(255, 215, 0, 0.06)',
+    position: 4,
+    emoji: '🥉', 
+    label: 'Baller',
+    color: 'var(--text-secondary)',
+    bgColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'var(--border-light)',
   },
   { 
+    position: 5,
     emoji: '⭐', 
-    label: 'Elder', 
-    minBalance: 0,
+    label: 'Nepo baby',
     color: 'var(--text-meta)',
-    bgColor: 'transparent',
+    bgColor: 'rgba(255, 255, 255, 0.03)',
+    borderColor: 'var(--border-default)',
   },
 ];
 
-function getRank(balance: number) {
-  return RANK_TIERS.find(rank => balance >= rank.minBalance) || RANK_TIERS[RANK_TIERS.length - 1];
+function getRankByPosition(position: number) {
+  return POSITION_RANKS.find(rank => rank.position === position) || POSITION_RANKS[POSITION_RANKS.length - 1];
 }
 
 export default function Leaderboard() {
@@ -75,7 +73,6 @@ export default function Leaderboard() {
 
   const loadLeaderboard = async () => {
     try {
-      // ✅ Check cache first
       const cached = getCachedLeaderboard();
       if (cached) {
         setUsers(cached);
@@ -84,7 +81,7 @@ export default function Leaderboard() {
       }
 
       const usersRef = collection(db, 'users');
-      // ✅ TOP 5 USERS
+      // ✅ TOP 5 USERS by balance
       const q = query(usersRef, orderBy('balance', 'desc'), limit(5));
       const snapshot = await getDocs(q);
       
@@ -182,7 +179,8 @@ export default function Leaderboard() {
 
       {users.map((leaderboardUser, index) => {
         const isCurrentUser = leaderboardUser.id === user?.id;
-        const rank = getRank(leaderboardUser.balance);
+        const position = index + 1;
+        const rank = getRankByPosition(position);
         
         return (
           <div
@@ -195,23 +193,47 @@ export default function Leaderboard() {
               borderRadius: 'var(--radius-sm)',
               marginBottom: index < users.length - 1 ? '4px' : '0',
               background: isCurrentUser ? 'var(--green-bg)' : 'transparent',
-              border: isCurrentUser ? '1px solid var(--green-border)' : 'none',
+              border: isCurrentUser 
+                ? `2px solid var(--green-border)` 
+                : position === 1 
+                  ? `2px solid ${rank.borderColor}` 
+                  : 'none',
               transition: '0.2s',
               cursor: 'default',
+              position: 'relative',
             }}
           >
+            {/* Position Badge - Large and prominent for #1 */}
+            {position === 1 && (
+              <div style={{
+                position: 'absolute',
+                top: '-6px',
+                right: '12px',
+                background: 'var(--gold)',
+                color: 'var(--bg-primary)',
+                padding: '2px 12px',
+                borderRadius: '10px',
+                fontSize: '10px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+              }}>
+                🏆 #1
+              </div>
+            )}
+
             {/* Rank Position (1-5) */}
             <div style={{
               width: '28px',
               fontSize: '14px',
               fontWeight: 700,
-              color: index < 3 ? 'var(--gold)' : 'var(--text-meta)',
+              color: position <= 3 ? 'var(--gold)' : 'var(--text-meta)',
               textAlign: 'center',
             }}>
-              #{index + 1}
+              #{position}
             </div>
 
-            {/* Rank Emoji + Label */}
+            {/* Rank Emoji + Label - UNIQUE per position */}
             <div style={{
               display: 'flex',
               flexDirection: 'column',
@@ -221,12 +243,13 @@ export default function Leaderboard() {
               <span style={{ fontSize: '22px' }}>{rank.emoji}</span>
               <span style={{
                 fontSize: '9px',
-                fontWeight: 600,
+                fontWeight: 700,
                 color: rank.color,
                 background: rank.bgColor,
-                padding: '1px 6px',
-                borderRadius: '8px',
+                padding: '2px 8px',
+                borderRadius: '10px',
                 marginTop: '2px',
+                whiteSpace: 'nowrap',
               }}>
                 {rank.label}
               </span>
@@ -239,15 +262,18 @@ export default function Leaderboard() {
               borderRadius: '50%',
               background: isCurrentUser 
                 ? 'linear-gradient(135deg, var(--green), var(--green-dark))'
-                : 'linear-gradient(135deg, #1c212e, #2a3142)',
+                : position === 1
+                  ? 'linear-gradient(135deg, var(--gold), var(--gold-dark))'
+                  : 'linear-gradient(135deg, #1c212e, #2a3142)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '14px',
               fontWeight: 700,
-              color: isCurrentUser ? 'var(--bg-primary)' : 'var(--text-secondary)',
+              color: isCurrentUser || position === 1 ? 'var(--bg-primary)' : 'var(--text-secondary)',
               flexShrink: 0,
-              border: index === 0 ? '2px solid var(--gold)' : '1px solid var(--border-light)',
+              border: position === 1 ? '2px solid var(--gold)' : '1px solid var(--border-light)',
+              boxShadow: position === 1 ? '0 0 20px rgba(255, 215, 0, 0.2)' : 'none',
             }}>
               {leaderboardUser.username.charAt(0).toUpperCase()}
             </div>
@@ -275,18 +301,6 @@ export default function Leaderboard() {
                     YOU
                   </span>
                 )}
-                {index === 0 && (
-                  <span style={{
-                    fontSize: '9px',
-                    color: 'var(--gold)',
-                    background: 'var(--gold-bg)',
-                    padding: '1px 8px',
-                    borderRadius: '10px',
-                    fontWeight: 500,
-                  }}>
-                    👑
-                  </span>
-                )}
               </div>
               <div style={{
                 fontSize: '11px',
@@ -301,7 +315,7 @@ export default function Leaderboard() {
               </div>
             </div>
 
-            {/* ✅ Show rank badge only - NO NUMBERS */}
+            {/* Position Title - Bold and prominent */}
             <div style={{
               display: 'flex',
               flexDirection: 'column',
@@ -309,20 +323,20 @@ export default function Leaderboard() {
               gap: '2px',
             }}>
               <span style={{
-                fontSize: '13px',
-                fontWeight: 700,
+                fontSize: '14px',
+                fontWeight: 800,
                 color: rank.color,
+                textShadow: position === 1 ? '0 0 20px rgba(255, 215, 0, 0.2)' : 'none',
               }}>
                 {rank.label}
               </span>
               <span style={{
-                fontSize: '9px',
+                fontSize: '8px',
                 color: 'var(--text-muted)',
-                background: 'var(--bg-hover)',
-                padding: '1px 8px',
-                borderRadius: '8px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
               }}>
-                {rank.emoji} Rank
+                {position === 1 ? '🏆 CHAMPION' : `Rank #${position}`}
               </span>
             </div>
           </div>
