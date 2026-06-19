@@ -52,7 +52,7 @@ const RANK_TIERS = [
     bgColor: 'rgba(255, 215, 0, 0.06)',
   },
   { 
-    emoji: '🌱', 
+    emoji: '⭐', 
     label: 'Elder', 
     minBalance: 0,
     color: 'var(--text-meta)',
