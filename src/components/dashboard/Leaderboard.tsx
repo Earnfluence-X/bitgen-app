@@ -84,7 +84,8 @@ export default function Leaderboard() {
       }
 
       const usersRef = collection(db, 'users');
-      const q = query(usersRef, orderBy('balance', 'desc'), limit(10));
+      // ✅ TOP 5 USERS
+      const q = query(usersRef, orderBy('balance', 'desc'), limit(5));
       const snapshot = await getDocs(q);
       
       const leaderboardUsers = snapshot.docs.map(doc => ({
@@ -175,7 +176,7 @@ export default function Leaderboard() {
           🏆 Top Earners
         </div>
         <div style={{ fontSize: '11px', color: 'var(--text-meta)' }}>
-          {users.length} users
+          Top {users.length}
         </div>
       </div>
 
@@ -199,7 +200,7 @@ export default function Leaderboard() {
               cursor: 'default',
             }}
           >
-            {/* Rank Position (1-10) */}
+            {/* Rank Position (1-5) */}
             <div style={{
               width: '28px',
               fontSize: '14px',
@@ -327,24 +328,6 @@ export default function Leaderboard() {
           </div>
         );
       })}
-      
-      {/* Privacy note */}
-      <div style={{
-        marginTop: '12px',
-        padding: '10px 12px',
-        background: 'var(--bg-hover)',
-        borderRadius: 'var(--radius-sm)',
-        fontSize: '11px',
-        color: 'var(--text-muted)',
-        textAlign: 'center',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '6px',
-      }}>
-        <span>🔒</span>
-        <span>Balances are private. Only achievement ranks are displayed.</span>
-      </div>
     </div>
   );
 }
