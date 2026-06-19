@@ -14,11 +14,11 @@ export interface CoinPackage {
 }
 
 export const COIN_PACKAGES: CoinPackage[] = [
-  { id: 'p1', name: 'Starter', coins: 200, price: 100, priceDisplay: '₦100', badge: '✨' },
-  { id: 'p2', name: 'Popular', coins: 600, price: 250, priceDisplay: '₦250', badge: '🔥' },
-  { id: 'p3', name: 'Pro', coins: 1400, price: 400, priceDisplay: '₦400', badge: '💎' },
-  { id: 'p4', name: 'Premium', coins: 3000, price: 700, priceDisplay: '₦700', badge: '👑' },
-  { id: 'p5', name: 'Mega', coins: 8000, price: 1500, priceDisplay: '₦1,500', badge: '⭐' },
+  { id: 'p1', name: 'Starter', coins: 200, price: 100, priceDisplay: '₦100', badge: '' },
+  { id: 'p2', name: 'Popular', coins: 600, price: 250, priceDisplay: '₦250', badge: '★' },
+  { id: 'p3', name: 'Pro', coins: 1400, price: 400, priceDisplay: '₦400', badge: '★★' },
+  { id: 'p4', name: 'Premium', coins: 3000, price: 700, priceDisplay: '₦700', badge: '★★★' },
+  { id: 'p5', name: 'Mega', coins: 8000, price: 1500, priceDisplay: '₦1,500', badge: '★' },
 ];
 
 declare global {
