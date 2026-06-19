@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { db, doc, getDoc, collection, query, where, getDocs } from '../../lib/firebase';
+import { db, doc, getDoc, collection, query, where, getDocs, orderBy, limit } from '../../lib/firebase';
 import { formatTimeAgo } from '../../lib/utils';
 import { getActivityLogsByUser } from '../../lib/admin';
 import { useAdminStore } from '../../lib/adminStore';
